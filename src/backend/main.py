@@ -15,8 +15,8 @@ logger.remove()
 logger.add(sys.stderr, level=os.getenv("LOG_LEVEL", "INFO"))
 logger.add("logs/defai_oracle.log", level=os.getenv("LOG_LEVEL", "INFO"))
 
-# Import routers (will create these next)
-# from src.backend.api.routes import sentiment, health, tokens
+# Import routers
+from src.backend.api_routes import router as sentiment_router, startup, shutdown
 
 # ============================================
 # Lifespan Events
@@ -31,17 +31,14 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 DeFAI Oracle starting up...")
     logger.info(f"Environment: {os.getenv('DEBUG', 'production')}")
     
-    # Initialize services here
-    # - Database connections
-    # - Redis connections
-    # - ML models
-    # - Kafka consumers
+    # Initialize sentiment pipeline
+    await startup()
     
     yield
     
     # Shutdown
     logger.info("🛑 DeFAI Oracle shutting down...")
-    # Clean up resources here
+    await shutdown()
 
 
 # ============================================
@@ -92,10 +89,8 @@ async def root():
     }
 
 
-# TODO: Add these routes
-# app.include_router(sentiment.router, prefix="/api/v1/sentiment", tags=["sentiment"])
-# app.include_router(health.router, prefix="/api/v1", tags=["health"])
-# app.include_router(tokens.router, prefix="/api/v1/tokens", tags=["tokens"])
+# Include routers
+app.include_router(sentiment_router)
 
 # ============================================
 # Error Handlers
