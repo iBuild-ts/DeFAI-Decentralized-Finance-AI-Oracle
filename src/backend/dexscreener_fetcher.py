@@ -54,14 +54,18 @@ class DexScreenerFetcher:
                     logger.info(f"Using cached trending tokens ({len(cached_data)} tokens)")
                     return cached_data
             
-            # Fetch from API - try multiple endpoints
+            # Fetch from API
             logger.info(f"Fetching trending tokens from DexScreener...")
             
-            # Try chain endpoint first
-            url = f"{self.BASE_URL}/dex/base"
+            # Use search endpoint with Base chain filter
+            url = f"{self.BASE_URL}/dex/search"
+            params = {
+                "q": "base",
+                "limit": self.max_tokens * 2,  # Get more to account for duplicates
+            }
             
-            logger.info(f"Fetching from {url}")
-            response = await self.client.get(url)
+            logger.info(f"Fetching from {url} with params {params}")
+            response = await self.client.get(url, params=params)
             response.raise_for_status()
             
             data = response.json()
