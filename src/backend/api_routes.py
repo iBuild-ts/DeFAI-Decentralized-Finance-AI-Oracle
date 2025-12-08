@@ -18,6 +18,11 @@ router = APIRouter(prefix="/api/v1", tags=["sentiment"])
 # Global pipeline instance
 sentiment_pipeline: Optional[SentimentPipeline] = None
 
+# Cache for sentiment results
+sentiment_cache: Dict[str, Any] = {}
+cache_timestamp: Optional[datetime] = None
+CACHE_TTL_SECONDS = 5  # Update cache every 5 seconds
+
 
 # ============================================
 # Initialization
@@ -91,24 +96,53 @@ async def get_token_sentiment(token: str) -> Dict[str, Any]:
 async def get_all_sentiments() -> Dict[str, Any]:
     """
     Get current sentiment for all tokens
+    Uses cached results for fast response
     
     Returns:
         Sentiment data for all configured tokens
     """
+    global sentiment_cache, cache_timestamp
+    
     await initialize_pipeline()
     
     try:
-        # Analyze all tokens
-        results = await sentiment_pipeline.analyze_all_tokens()
+        # Check if cache is still valid
+        now = datetime.now()
+        if cache_timestamp and (now - cache_timestamp).total_seconds() < CACHE_TTL_SECONDS:
+            # Return cached results
+            return {
+                "success": True,
+                "timestamp": now.isoformat(),
+                "data": sentiment_cache,
+            }
+        
+        # Update cache in background (don't wait for it)
+        # Return empty cache first, then update
+        if not sentiment_cache:
+            # First request - analyze all tokens
+            results = await sentiment_pipeline.analyze_all_tokens()
+            sentiment_cache = {token: sentiment.to_dict() for token, sentiment in results.items()}
+            cache_timestamp = now
+        else:
+            # Schedule background update
+            import asyncio
+            asyncio.create_task(sentiment_pipeline.analyze_all_tokens())
         
         return {
             "success": True,
-            "timestamp": datetime.now().isoformat(),
-            "data": {token: sentiment.to_dict() for token, sentiment in results.items()},
+            "timestamp": now.isoformat(),
+            "data": sentiment_cache,
         }
     
     except Exception as e:
         logger.error(f"Error getting all sentiments: {e}")
+        # Return cached data even if analysis fails
+        if sentiment_cache:
+            return {
+                "success": True,
+                "timestamp": datetime.now().isoformat(),
+                "data": sentiment_cache,
+            }
         raise HTTPException(status_code=500, detail=str(e))
 
 
