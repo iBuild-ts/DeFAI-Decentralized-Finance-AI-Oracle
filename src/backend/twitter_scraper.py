@@ -292,15 +292,15 @@ class NitterScraper:
     
     def _build_search_url(self, token: str) -> str:
         """Build Nitter search URL"""
-        query = f"({token} OR ${token}) lang:en"
+        # Search for token mentions with various formats
+        query = f"({token} OR ${token}) -is:retweet lang:en"
         encoded_query = quote(query)
-        return f"{self.nitter_instance}/search?q={encoded_query}&f=latest"
+        return f"{self.nitter_instance}/search?q={encoded_query}&f=tweets&sort=latest"
     
     def _parse_nitter_tweet(self, tweet_elem: BeautifulSoup) -> Optional[ScrapedTweet]:
         """Parse tweet from Nitter HTML"""
         try:
             # Extract tweet ID
-            tweet_link = tweet_elem.find("a", {"class": "tweet-link"})
             if not tweet_link:
                 return None
             

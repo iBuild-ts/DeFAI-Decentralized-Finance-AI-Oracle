@@ -12,7 +12,7 @@ from loguru import logger
 import json
 from collections import defaultdict
 
-from src.backend.twitter_scraper import NitterScraper, ScrapedTweet
+from src.backend.twitter_scraper_v2 import TwitterScraperV2, ScrapedTweet
 from src.backend.sentiment_analyzer import SentimentAnalyzer, SentimentResult
 from src.backend.data_pipeline_v2 import UpdatedDataPipeline, RawPost
 
@@ -121,7 +121,7 @@ class SentimentPipeline:
         self.logger = logger.bind(component="SentimentPipeline")
         
         # Initialize components
-        self.scraper = NitterScraper(token_list)
+        self.scraper = TwitterScraperV2(token_list)
         self.analyzer = SentimentAnalyzer()
         self.pipeline = UpdatedDataPipeline(token_list)
         
@@ -138,7 +138,7 @@ class SentimentPipeline:
         self.token_list = new_tokens
         
         # Reinitialize components with new tokens
-        self.scraper = NitterScraper(new_tokens)
+        self.scraper = TwitterScraperV2(new_tokens)
         self.pipeline = UpdatedDataPipeline(new_tokens)
         
         # Reset sentiment history for new tokens
