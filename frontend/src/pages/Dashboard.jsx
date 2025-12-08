@@ -59,35 +59,40 @@ export default function Dashboard() {
 
   const chartData = Object.entries(sentiments).map(([token, data]) => ({
     token,
-    score: data.sentiment_score,
     confidence: data.confidence * 100,
     bullish: data.bullish_count,
     bearish: data.bearish_count,
   }));
 
-  if (loading) {
-    return (
-      <div className="dashboard">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p className="loading-text">Loading sentiment data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
+  if (loading && Object.keys(sentiments).length === 0) {
     return (
       <div className="dashboard">
         <div className="dashboard-container">
-          <div className="error-container">
-            <p>Error loading data: {error}</p>
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>Loading sentiment data...</p>
           </div>
         </div>
       </div>
     );
   }
 
+  if (error && Object.keys(sentiments).length === 0) {
+    return (
+      <div className="dashboard">
+        <div className="dashboard-container">
+          <div className="error-container">
+            <p>Error loading data: {error}</p>
+            <p style={{ fontSize: '12px', marginTop: '10px', color: 'rgba(148, 163, 184, 0.7)' }}>
+              Retrying...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+{{ ... }}
   return (
     <div className="dashboard">
       {/* Header */}
