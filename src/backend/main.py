@@ -46,8 +46,8 @@ async def lifespan(app: FastAPI):
     await token_manager.initialize()
     logger.info(f"Token Manager: {token_manager.get_token_count()} tokens")
     
-    # Initialize sentiment pipeline
-    await startup()
+    # Initialize sentiment pipeline with dynamic tokens
+    await startup(token_manager)
     
     yield
     

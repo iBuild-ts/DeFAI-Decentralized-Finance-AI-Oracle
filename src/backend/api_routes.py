@@ -23,12 +23,19 @@ sentiment_pipeline: Optional[SentimentPipeline] = None
 # Initialization
 # ============================================
 
-async def initialize_pipeline():
+async def initialize_pipeline(token_manager=None):
     """Initialize sentiment pipeline"""
     global sentiment_pipeline
     
     if sentiment_pipeline is None:
-        tokens = settings.token_list
+        # Use dynamic tokens from token manager if available
+        if token_manager:
+            tokens = await token_manager.get_tokens()
+            logger.info(f"Using dynamic tokens from TokenManager: {tokens}")
+        else:
+            tokens = settings.token_list
+            logger.info(f"Using static tokens from config: {tokens}")
+        
         sentiment_pipeline = SentimentPipeline(tokens)
         logger.info(f"Initialized sentiment pipeline for {len(tokens)} tokens")
 
@@ -354,10 +361,10 @@ async def get_pipeline_stats() -> Dict[str, Any]:
 # Startup/Shutdown
 # ============================================
 
-async def startup():
+async def startup(token_manager=None):
     """Startup event"""
     logger.info("Starting DeFAI Oracle API...")
-    await initialize_pipeline()
+    await initialize_pipeline(token_manager)
 
 
 async def shutdown():
