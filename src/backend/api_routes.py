@@ -28,7 +28,7 @@ async def initialize_pipeline():
     global sentiment_pipeline
     
     if sentiment_pipeline is None:
-        tokens = settings.TOKEN_LIST
+        tokens = settings.token_list
         sentiment_pipeline = SentimentPipeline(tokens)
         logger.info(f"Initialized sentiment pipeline for {len(tokens)} tokens")
 

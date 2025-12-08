@@ -4,11 +4,14 @@ Real-time sentiment oracle for Base memecoins
 """
 
 import os
+import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
-import sys
+
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # Configure logging
 logger.remove()
@@ -120,7 +123,7 @@ if __name__ == "__main__":
     logger.info(f"Starting server on {host}:{port}")
     
     uvicorn.run(
-        "main:app",
+        "src.backend.main:app",
         host=host,
         port=port,
         reload=debug,

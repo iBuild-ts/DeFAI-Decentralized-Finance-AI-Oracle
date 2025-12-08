@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     # ============================================
     sentiment_confidence_threshold: float = 0.6
     sentiment_intensity_threshold: float = 0.5
+    token_list: list = ["DOGE", "SHIB", "PEPE"]
     
     # ============================================
     # Oracle Node
