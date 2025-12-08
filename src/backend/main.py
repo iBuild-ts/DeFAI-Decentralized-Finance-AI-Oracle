@@ -6,6 +6,7 @@ Real-time sentiment oracle for Base memecoins
 import os
 import sys
 from contextlib import asynccontextmanager
+from typing import Optional
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
@@ -18,8 +19,12 @@ logger.remove()
 logger.add(sys.stderr, level=os.getenv("LOG_LEVEL", "INFO"))
 logger.add("logs/defai_oracle.log", level=os.getenv("LOG_LEVEL", "INFO"))
 
-# Import routers
+# Import routers and token manager
 from src.backend.api_routes import router as sentiment_router, startup, shutdown
+from src.backend.token_manager import TokenManager
+
+# Global token manager
+token_manager: Optional[TokenManager] = None
 
 # ============================================
 # Lifespan Events
@@ -30,9 +35,16 @@ async def lifespan(app: FastAPI):
     """
     Manage application startup and shutdown
     """
+    global token_manager
+    
     # Startup
     logger.info("🚀 DeFAI Oracle starting up...")
     logger.info(f"Environment: {os.getenv('DEBUG', 'production')}")
+    
+    # Initialize token manager
+    token_manager = TokenManager()
+    await token_manager.initialize()
+    logger.info(f"Token Manager: {token_manager.get_token_count()} tokens")
     
     # Initialize sentiment pipeline
     await startup()
@@ -41,6 +53,7 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("🛑 DeFAI Oracle shutting down...")
+    await token_manager.close()
     await shutdown()
 
 
@@ -94,6 +107,44 @@ async def root():
 
 # Include routers
 app.include_router(sentiment_router)
+
+
+# ============================================
+# Token Management Endpoints
+# ============================================
+
+@app.get("/api/v1/tokens")
+async def get_tokens():
+    """Get current token list"""
+    if not token_manager:
+        return {"error": "Token manager not initialized"}
+    
+    return {
+        "success": True,
+        "data": {
+            "tokens": token_manager.tokens,
+            "count": token_manager.get_token_count(),
+            "status": token_manager.get_status(),
+        }
+    }
+
+
+@app.post("/api/v1/tokens/refresh")
+async def refresh_tokens():
+    """Manually refresh token list"""
+    if not token_manager:
+        return {"error": "Token manager not initialized"}
+    
+    await token_manager.refresh_tokens()
+    
+    return {
+        "success": True,
+        "data": {
+            "tokens": token_manager.tokens,
+            "count": token_manager.get_token_count(),
+            "status": token_manager.get_status(),
+        }
+    }
 
 # ============================================
 # Error Handlers
