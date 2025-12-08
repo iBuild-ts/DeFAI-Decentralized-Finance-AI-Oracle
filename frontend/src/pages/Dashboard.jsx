@@ -24,7 +24,9 @@ export default function Dashboard() {
   const fetchTokens = async () => {
     try {
       const response = await api.get('/tokens');
-      if (response.data.data && response.data.data.tokens) {
+      if (response.data.tokens) {
+        setTokens(response.data.tokens);
+      } else if (response.data.data && response.data.data.tokens) {
         setTokens(response.data.data.tokens);
       }
     } catch (err) {
