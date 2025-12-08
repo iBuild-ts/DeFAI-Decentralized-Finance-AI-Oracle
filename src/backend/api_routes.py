@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from loguru import logger
 
 from src.backend.sentiment_pipeline import SentimentPipeline, TokenSentiment
+from src.backend.sniper_bot import SniperBot
 from src.backend.config import settings
 
 
@@ -17,11 +18,17 @@ router = APIRouter(prefix="/api/v1", tags=["sentiment"])
 
 # Global pipeline instance
 sentiment_pipeline: Optional[SentimentPipeline] = None
+sniper_bot: Optional[SniperBot] = None
 
 # Cache for sentiment results
 sentiment_cache: Dict[str, Any] = {}
 cache_timestamp: Optional[datetime] = None
 CACHE_TTL_SECONDS = 5  # Update cache every 5 seconds
+
+# Cache for sniper signals
+sniper_cache: List[Dict[str, Any]] = []
+sniper_cache_timestamp: Optional[datetime] = None
+SNIPER_CACHE_TTL_SECONDS = 60  # Update sniper signals every 60 seconds
 
 
 # ============================================
@@ -395,6 +402,116 @@ async def get_pipeline_stats() -> Dict[str, Any]:
         "total_samples": total_samples,
         "timestamp": datetime.now().isoformat(),
     }
+
+
+# ============================================
+# Sniper Bot Endpoints
+# ============================================
+
+@router.get("/sniper/scan")
+async def scan_sniper_signals() -> Dict[str, Any]:
+    """
+    Scan for new tokens and generate sniper signals
+    Uses cached results for fast response
+    """
+    global sniper_bot, sniper_cache, sniper_cache_timestamp
+    
+    try:
+        # Initialize sniper bot if needed
+        if sniper_bot is None:
+            sniper_bot = SniperBot()
+        
+        # Check if cache is still valid
+        now = datetime.now()
+        if sniper_cache_timestamp and (now - sniper_cache_timestamp).total_seconds() < SNIPER_CACHE_TTL_SECONDS:
+            # Return cached results
+            return {
+                "success": True,
+                "timestamp": now.isoformat(),
+                "data": sniper_cache,
+                "cached": True,
+            }
+        
+        # Scan for new tokens
+        signals = await sniper_bot.scan_new_tokens()
+        
+        # Convert to dict format
+        sniper_cache = [
+            {
+                "token_address": s.token_address,
+                "token_symbol": s.token_symbol,
+                "token_name": s.token_name,
+                "dex": s.dex,
+                "volume_score": s.volume_score,
+                "sentiment_score": s.sentiment_score,
+                "dev_wallet_score": s.dev_wallet_score,
+                "liquidity_score": s.liquidity_score,
+                "overall_score": s.overall_score,
+                "prediction": s.prediction,
+                "confidence": s.confidence,
+                "key_signals": s.key_signals,
+                "risks": s.risks,
+                "recommendation": s.recommendation,
+                "pool_address": s.pool_address,
+                "created_at": s.created_at.isoformat(),
+                "analysis_timestamp": s.analysis_timestamp.isoformat(),
+            }
+            for s in signals
+        ]
+        
+        sniper_cache_timestamp = now
+        
+        return {
+            "success": True,
+            "timestamp": now.isoformat(),
+            "data": sniper_cache,
+            "cached": False,
+            "signal_count": len(signals),
+        }
+    
+    except Exception as e:
+        logger.error(f"Error scanning sniper signals: {e}")
+        # Return cached data if available
+        if sniper_cache:
+            return {
+                "success": True,
+                "timestamp": datetime.now().isoformat(),
+                "data": sniper_cache,
+                "cached": True,
+                "error": str(e),
+            }
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/sniper/top")
+async def get_top_sniper_signals(limit: int = Query(10, ge=1, le=50)) -> Dict[str, Any]:
+    """
+    Get top sniper signals by overall score
+    """
+    global sniper_cache
+    
+    try:
+        # Get all signals
+        all_signals = sniper_cache
+        
+        # Sort by overall score and return top N
+        top_signals = sorted(
+            all_signals,
+            key=lambda x: x["overall_score"],
+            reverse=True
+        )[:limit]
+        
+        return {
+            "success": True,
+            "timestamp": datetime.now().isoformat(),
+            "data": top_signals,
+            "total_count": len(all_signals),
+            "top_count": len(top_signals),
+        }
+    
+    except Exception as e:
+        logger.error(f"Error getting top signals: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================
