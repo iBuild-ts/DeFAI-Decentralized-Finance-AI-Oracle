@@ -38,6 +38,12 @@ async def initialize_pipeline(token_manager=None):
         
         sentiment_pipeline = SentimentPipeline(tokens)
         logger.info(f"Initialized sentiment pipeline for {len(tokens)} tokens")
+    elif token_manager:
+        # Update tokens if pipeline already exists
+        tokens = await token_manager.get_tokens()
+        if tokens != sentiment_pipeline.token_list:
+            await sentiment_pipeline.update_tokens(tokens)
+            logger.info(f"Updated sentiment pipeline with new tokens from TokenManager")
 
 
 # ============================================

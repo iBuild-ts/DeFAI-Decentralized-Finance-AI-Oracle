@@ -131,11 +131,19 @@ async def get_tokens():
 
 @app.post("/api/v1/tokens/refresh")
 async def refresh_tokens():
-    """Manually refresh token list"""
+    """Manually refresh token list and update sentiment pipeline"""
     if not token_manager:
         return {"error": "Token manager not initialized"}
     
     await token_manager.refresh_tokens()
+    
+    # Import here to avoid circular imports
+    from src.backend.api_routes import sentiment_pipeline
+    
+    # Update sentiment pipeline with new tokens
+    if sentiment_pipeline:
+        await sentiment_pipeline.update_tokens(token_manager.tokens)
+        logger.info(f"Updated sentiment pipeline with {len(token_manager.tokens)} tokens")
     
     return {
         "success": True,

@@ -132,6 +132,22 @@ class SentimentPipeline:
         
         self.logger.info(f"Initialized sentiment pipeline for {len(token_list)} tokens")
     
+    async def update_tokens(self, new_tokens: List[str]):
+        """Update token list and reinitialize components"""
+        self.logger.info(f"Updating tokens from {self.token_list} to {new_tokens}")
+        self.token_list = new_tokens
+        
+        # Reinitialize components with new tokens
+        self.scraper = NitterScraper(new_tokens)
+        self.pipeline = UpdatedDataPipeline(new_tokens)
+        
+        # Reset sentiment history for new tokens
+        for token in new_tokens:
+            if token not in self.sentiment_history:
+                self.sentiment_history[token] = SentimentHistory(token)
+        
+        self.logger.info(f"Updated sentiment pipeline for {len(new_tokens)} tokens")
+    
     async def analyze_token(self, token: str) -> TokenSentiment:
         """
         Analyze sentiment for a single token
