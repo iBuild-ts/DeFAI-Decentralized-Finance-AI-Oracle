@@ -367,10 +367,18 @@ class NitterScraper:
                     html = await response.text()
                     soup = BeautifulSoup(html, "html.parser")
                     
-                    # Find tweet elements
+                    # Find tweet elements - Nitter uses different selectors
+                    # Try multiple selectors
                     tweet_elements = soup.find_all("div", {"class": "tweet"})
+                    if not tweet_elements:
+                        tweet_elements = soup.find_all("div", {"class": "timeline-item"})
+                    if not tweet_elements:
+                        tweet_elements = soup.find_all("article")
+                    if not tweet_elements:
+                        # Fallback: find all divs with data-tweet-id
+                        tweet_elements = soup.find_all("div", {"data-tweet-id": True})
                     
-                    self.logger.info(f"Found {len(tweet_elements)} tweets")
+                    self.logger.info(f"Found {len(tweet_elements)} tweet elements using selectors")
                     
                     for element in tweet_elements[:max_tweets]:
                         tweet = self._parse_nitter_tweet(element)
@@ -380,7 +388,7 @@ class NitterScraper:
                     self.logger.info(f"Scraped {len(tweets)} tweets for {token}")
                 
                 else:
-                    self.logger.error(f"Nitter returned status {response.status}")
+                    self.logger.error(f"Nitter returned status {response.status} for {url}")
         
         except Exception as e:
             self.logger.error(f"Error scraping via Nitter: {e}")

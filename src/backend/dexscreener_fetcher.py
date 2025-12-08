@@ -16,7 +16,7 @@ class DexScreenerFetcher:
     BASE_URL = "https://api.dexscreener.com/latest"
     CHAIN = "base"
     
-    def __init__(self, max_tokens: int = 20):
+    def __init__(self, max_tokens: int = 50):
         """
         Initialize DexScreener fetcher
         
@@ -61,7 +61,7 @@ class DexScreenerFetcher:
             url = f"{self.BASE_URL}/dex/search"
             params = {
                 "q": "base",
-                "limit": self.max_tokens * 2,  # Get more to account for duplicates
+                "limit": 250,  # Max limit to get as many as possible
             }
             
             logger.info(f"Fetching from {url} with params {params}")
@@ -70,6 +70,8 @@ class DexScreenerFetcher:
             
             data = response.json()
             pairs = data.get("pairs", [])
+            
+            logger.info(f"DexScreener returned {len(pairs)} pairs")
             
             # Extract token info
             tokens = []

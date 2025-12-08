@@ -85,7 +85,7 @@ class Settings(BaseSettings):
     # DexScreener Integration
     # ============================================
     enable_dexscreener: bool = True
-    dexscreener_max_tokens: int = 20
+    dexscreener_max_tokens: int = 50
     dexscreener_refresh_interval_minutes: int = 60
     use_dynamic_tokens: bool = True
     
