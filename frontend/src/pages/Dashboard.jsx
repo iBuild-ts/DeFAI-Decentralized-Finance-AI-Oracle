@@ -59,6 +59,7 @@ export default function Dashboard() {
 
   const chartData = Object.entries(sentiments).map(([token, data]) => ({
     token,
+    score: data.sentiment_score,
     confidence: data.confidence * 100,
     bullish: data.bullish_count,
     bearish: data.bearish_count,
