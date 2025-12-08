@@ -193,11 +193,22 @@ class SentimentPipeline:
             neutral_count = sum(1 for s in sentiments if s.sentiment == "neutral")
             bearish_count = sum(1 for s in sentiments if s.sentiment == "bearish")
             
-            # Calculate average sentiment score
-            avg_sentiment_score = sum(s.score for s in sentiments) / len(sentiments)
+            # Calculate average sentiment score (0-100 scale)
+            # Map sentiment to score: bearish=0-33, neutral=34-66, bullish=67-100
+            sentiment_scores = []
+            for s in sentiments:
+                if s.sentiment == "bullish":
+                    score = 67 + (s.confidence * 33)  # 67-100
+                elif s.sentiment == "bearish":
+                    score = s.confidence * 33  # 0-33
+                else:  # neutral
+                    score = 34 + (s.confidence * 33)  # 34-66
+                sentiment_scores.append(score)
+            
+            avg_sentiment_score = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 50.0
             
             # Calculate average confidence
-            avg_confidence = sum(s.confidence for s in sentiments) / len(sentiments)
+            avg_confidence = sum(s.confidence for s in sentiments) / len(sentiments) if sentiments else 0.0
             
             # Determine sentiment label
             if bullish_count > neutral_count + bearish_count:
