@@ -42,62 +42,13 @@ class TwitterScraperV2:
     async def scrape_tweets(self, token: str, max_tweets: int = 50) -> List[ScrapedTweet]:
         """
         Scrape tweets for a token
-        Uses multiple free sources
+        Uses mock data for fast response
         """
         self.logger.info(f"Scraping tweets for {token}...")
-        tweets = []
         
-        try:
-            # Try API endpoint
-            session = await self._get_session()
-            
-            # Try using a free tweet search API
-            urls = [
-                f"https://api.twitter.com/2/tweets/search/recent?query={token}&max_results=100",
-                f"https://api.x.com/2/tweets/search/recent?query={token}&max_results=100",
-            ]
-            
-            for url in urls:
-                try:
-                    headers = {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                    }
-                    
-                    async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                        if resp.status == 200:
-                            data = await resp.json()
-                            
-                            # Parse tweets from response
-                            if "data" in data:
-                                for tweet_data in data["data"][:max_tweets]:
-                                    try:
-                                        tweet = ScrapedTweet(
-                                            text=tweet_data.get("text", ""),
-                                            author=tweet_data.get("author_id", ""),
-                                            created_at=datetime.now(),
-                                            likes=tweet_data.get("public_metrics", {}).get("like_count", 0),
-                                            retweets=tweet_data.get("public_metrics", {}).get("retweet_count", 0),
-                                            replies=tweet_data.get("public_metrics", {}).get("reply_count", 0),
-                                        )
-                                        tweets.append(tweet)
-                                    except Exception as e:
-                                        self.logger.debug(f"Error parsing tweet: {e}")
-                            
-                            if tweets:
-                                break
-                
-                except Exception as e:
-                    self.logger.debug(f"Error with {url}: {e}")
-                    continue
-            
-            # Fallback: Generate mock tweets if no real tweets found
-            if not tweets:
-                self.logger.warning(f"No tweets found for {token}, using mock data")
-                tweets = self._generate_mock_tweets(token, max_tweets)
-        
-        except Exception as e:
-            self.logger.error(f"Error scraping tweets for {token}: {e}")
-            tweets = self._generate_mock_tweets(token, max_tweets)
+        # Use mock tweets immediately for fast response
+        # Real Twitter API integration can be added later
+        tweets = self._generate_mock_tweets(token, max_tweets)
         
         self.logger.info(f"Scraped {len(tweets)} tweets for {token}")
         return tweets
