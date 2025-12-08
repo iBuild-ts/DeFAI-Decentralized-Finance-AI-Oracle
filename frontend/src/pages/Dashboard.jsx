@@ -9,15 +9,28 @@ import api from '../services/api';
  */
 export default function Dashboard() {
   const [sentiments, setSentiments] = useState({});
+  const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch sentiment data
+  // Fetch tokens and sentiment data
   useEffect(() => {
+    fetchTokens();
     fetchSentiments();
     const interval = setInterval(fetchSentiments, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchTokens = async () => {
+    try {
+      const response = await api.get('/tokens');
+      if (response.data.data && response.data.data.tokens) {
+        setTokens(response.data.data.tokens);
+      }
+    } catch (err) {
+      console.error('Error fetching tokens:', err);
+    }
+  };
 
   const fetchSentiments = async () => {
     try {
