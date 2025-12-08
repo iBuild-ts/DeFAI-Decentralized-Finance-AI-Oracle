@@ -54,16 +54,14 @@ class DexScreenerFetcher:
                     logger.info(f"Using cached trending tokens ({len(cached_data)} tokens)")
                     return cached_data
             
-            # Fetch from API
-            url = f"{self.BASE_URL}/dex/search"
-            params = {
-                "q": self.CHAIN,
-                "limit": self.max_tokens,
-                "order": "volume"
-            }
-            
+            # Fetch from API - try multiple endpoints
             logger.info(f"Fetching trending tokens from DexScreener...")
-            response = await self.client.get(url, params=params)
+            
+            # Try chain endpoint first
+            url = f"{self.BASE_URL}/dex/base"
+            
+            logger.info(f"Fetching from {url}")
+            response = await self.client.get(url)
             response.raise_for_status()
             
             data = response.json()
@@ -72,6 +70,10 @@ class DexScreenerFetcher:
             # Extract token info
             tokens = []
             seen_symbols = set()
+            
+            # Handle both single pair and pairs array responses
+            if isinstance(pairs, dict):
+                pairs = [pairs]
             
             for pair in pairs:
                 if len(tokens) >= self.max_tokens:
