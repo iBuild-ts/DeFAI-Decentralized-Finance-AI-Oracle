@@ -57,21 +57,41 @@ class DexScreenerFetcher:
             # Fetch from API
             logger.info(f"Fetching trending tokens from DexScreener...")
             
-            # Use search endpoint with Base chain filter
+            # Try to fetch from multiple endpoints to get more tokens
+            all_pairs = []
+            
+            # Try search endpoint
             url = f"{self.BASE_URL}/dex/search"
             params = {
                 "q": "base",
-                "limit": 250,  # Max limit to get as many as possible
+                "limit": 250,
             }
             
             logger.info(f"Fetching from {url} with params {params}")
-            response = await self.client.get(url, params=params)
-            response.raise_for_status()
+            try:
+                response = await self.client.get(url, params=params)
+                response.raise_for_status()
+                data = response.json()
+                pairs = data.get("pairs", [])
+                all_pairs.extend(pairs)
+                logger.info(f"DexScreener search returned {len(pairs)} pairs")
+            except Exception as e:
+                logger.warning(f"DexScreener search failed: {e}")
             
-            data = response.json()
-            pairs = data.get("pairs", [])
+            # Also try fetching popular tokens
+            try:
+                url2 = f"{self.BASE_URL}/dex/base/top/1h"
+                response2 = await self.client.get(url2)
+                if response2.status_code == 200:
+                    data2 = response2.json()
+                    pairs2 = data2.get("pairs", [])
+                    all_pairs.extend(pairs2)
+                    logger.info(f"DexScreener top 1h returned {len(pairs2)} pairs")
+            except Exception as e:
+                logger.debug(f"DexScreener top 1h failed: {e}")
             
-            logger.info(f"DexScreener returned {len(pairs)} pairs")
+            pairs = all_pairs
+            logger.info(f"Total pairs collected: {len(pairs)}")
             
             # Extract token info
             tokens = []
@@ -88,9 +108,16 @@ class DexScreenerFetcher:
                 try:
                     base_token = pair.get("baseToken", {})
                     symbol = base_token.get("symbol", "").upper()
+                    address = base_token.get("address", "")
                     
-                    # Skip if already added or no symbol
-                    if not symbol or symbol in seen_symbols:
+                    # Skip if no symbol or address
+                    if not symbol or not address:
+                        logger.debug(f"Skipping pair: no symbol or address")
+                        continue
+                    
+                    # Skip if already added (by symbol)
+                    if symbol in seen_symbols:
+                        logger.debug(f"Skipping {symbol}: already added")
                         continue
                     
                     seen_symbols.add(symbol)
